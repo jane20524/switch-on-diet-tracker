@@ -561,16 +561,6 @@
     <div id="calendarContainer"></div>
     <div id="dayDetailPanel"></div>
   </div>
-  <!-- 기록 목록 섹션 -->
-  <div id="historySection" style="margin-top:8px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;">
-      <div class="card-title" style="font-size:0.95rem;font-weight:700;margin-bottom:0;display:flex;align-items:center;gap:8px;">
-        <span class="icon">&#128203;</span> 기록 목록
-      </div>
-      <button class="btn btn-primary" onclick="goToTodayTab()" style="width:auto;padding:8px 16px;font-size:0.78rem;">+ 기록 추가</button>
-    </div>
-    <div id="historyList"></div>
-  </div>
 </div>
 
 <!-- 허용식품/비허용식품 -->
@@ -759,7 +749,6 @@ const DEFAULT_FASTING_DAYS = [12, 17, 20, 23, 25, 27];
 let currentViewDate = new Date();
 let exerciseRows = [];
 let formDirty = false;
-let selectedHistoryKey = null;
 
 // ===== UTILITY =====
 function dateKey(d) {
@@ -901,7 +890,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-    if (btn.dataset.tab === 'progress') { renderPhases(); document.getElementById('historySection').style.display = ''; }
+    if (btn.dataset.tab === 'progress') { renderPhases(); }
     if (btn.dataset.tab === 'foods') renderFoods();
     if (btn.dataset.tab === 'stats') renderStats();
     if (btn.dataset.tab === 'settings') loadSettings();
@@ -1123,17 +1112,6 @@ function renderPhases() {
 
   renderCalendar(data, dayNum);
 
-  // 달력 재렌더 후 선택 상태 복원
-  if (selectedHistoryKey) {
-    const selDate = new Date(selectedHistoryKey + 'T00:00:00');
-    const selDay = getDayNumber(selDate);
-    if (selDay > 0) {
-      document.querySelectorAll('.cal-day.program').forEach(el => {
-        const progNum = el.querySelector('.cal-prog-num');
-        if (progNum && progNum.textContent === 'D' + selDay) el.classList.add('selected');
-      });
-    }
-  }
 }
 
 function renderCalendar(data, dayNum) {
@@ -1273,20 +1251,16 @@ function showDayDetail(dayNum) {
     if (e.isPeriod) html += `<div class="detail-row"><span class="detail-label">생리</span><span>생리 중</span></div>`;
     if (e.dailyMemo) html += `<div class="detail-row"><span class="detail-label">메모</span><span>${escapeHtml(e.dailyMemo)}</span></div>`;
     html += '</div>';
-    html += `<div class="day-detail-actions"><button class="btn btn-outline" onclick="goToDateTab('${key}')">수정하기</button></div>`;
+    html += `<div class="day-detail-actions"><button class="btn btn-outline" onclick="goToDateTab('${key}')">수정하기</button><button class="btn btn-danger" onclick="deleteLog('${key}')" style="margin-left:8px;">삭제</button></div>`;
   }
   html += '</div>';
   panel.innerHTML = html;
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  selectedHistoryKey = key;
-  document.getElementById('historySection').style.display = 'none';
 }
 
 function closeDayDetail() {
   document.getElementById('dayDetailPanel').innerHTML = '';
   document.querySelectorAll('.cal-day.selected').forEach(el => el.classList.remove('selected'));
-  selectedHistoryKey = null;
-  document.getElementById('historySection').style.display = '';
 }
 
 function goToDateTab(key) {
@@ -1301,93 +1275,13 @@ function goToDateTab(key) {
 }
 
 // ===== HISTORY =====
-function renderHistory() {
-  const data = loadData();
-  const container = document.getElementById('historyList');
-
-  if (!selectedHistoryKey) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#128197;</div><p>달력에서 날짜를 선택하면<br>해당 날의 기록이 표시됩니다.</p></div>';
-    return;
-  }
-
-  const e = data.logs[selectedHistoryKey];
-  if (!e) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div><p>이 날의 기록이 없습니다.</p></div>';
-    return;
-  }
-
-  const key = selectedHistoryKey;
-  const d = new Date(key + 'T00:00:00');
-  const dayNum = getDayNumber(d);
-  const dayLabel = (dayNum > 0 && dayNum <= 28) ? ` (${dayNum}일차)` : '';
-  const fastingLabel = {none:'','16h':'16:8 단식','24h':'24h 단식'}[e.fastingType] || '';
-
-  const mealLines = [];
-  const slots = [{key:'breakfast',label:'아침'},{key:'lunch',label:'점심'},{key:'snack',label:'간식'},{key:'dinner',label:'저녁'}];
-  slots.forEach(s => {
-    const shake = e[`shake_${s.key}`];
-    const meal = e[`meal_${s.key}`];
-    if (shake && meal) mealLines.push(`<strong>${s.label}:</strong> \u2714 쉐이크 + ${escapeHtml(meal)}`);
-    else if (shake) mealLines.push(`<strong>${s.label}:</strong> \u2714 쉐이크`);
-    else if (meal) mealLines.push(`<strong>${s.label}:</strong> ${escapeHtml(meal)}`);
-  });
-
-  const suppTags = [];
-  if (e.isPeriod) suppTags.push('<span class="meal-tag period">생리 중</span>');
-  if (e.suppMorningProbiotic) suppTags.push('<span class="meal-tag supp">유산균</span>');
-  if (e.suppLunchVitamin) suppTags.push('<span class="meal-tag supp">영양제</span>');
-
-  const totalExMin = (e.exercises || []).reduce((s,x) => s + (x.duration||0), 0);
-  const exTags = (e.exercises || []).map(x => `<span class="meal-tag exercise">${escapeHtml(x.type)} ${x.duration}분</span>`).join('');
-
-  const heightCm = data.settings.height;
-  let bmiStr = '';
-  if (e.weight && heightCm) {
-    const bmi = calcBMI(e.weight, heightCm);
-    if (bmi) bmiStr = `<div class="log-stat"><div class="value">${bmi.toFixed(1)}</div><div class="label">BMI</div></div>`;
-  }
-
-  container.innerHTML = `<div class="card"><div class="log-entry">
-    <div class="log-date">${formatDate(d)}${dayLabel}</div>
-    <div class="log-stats">
-      ${e.weight ? `<div class="log-stat"><div class="value">${e.weight}</div><div class="label">kg</div></div>` : ''}
-      ${bmiStr}
-      ${totalExMin ? `<div class="log-stat"><div class="value">${totalExMin}</div><div class="label">운동(분)</div></div>` : ''}
-    </div>
-    <div class="log-meals">
-      ${fastingLabel ? `<span class="meal-tag shake">${fastingLabel}</span>` : ''}
-      ${suppTags.join('')}
-      ${exTags}
-      ${mealLines.length ? '<div style="margin-top:6px;">' + mealLines.join('<br>') + '</div>' : ''}
-      ${e.dailyMemo ? `<div style="margin-top:4px;font-style:italic;">&#128221; ${escapeHtml(e.dailyMemo)}</div>` : ''}
-    </div>
-    <div class="log-actions">
-      <button class="btn btn-outline" onclick="editLog('${key}')">수정</button>
-      <button class="btn btn-danger" onclick="deleteLog('${key}')">삭제</button>
-    </div>
-  </div></div>`;
-}
-
-function editLog(key) {
-  if (formDirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
-  formDirty = false;
-  currentViewDate = new Date(key + 'T00:00:00');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-  document.querySelector('[data-tab="today"]').classList.add('active');
-  document.getElementById('tab-today').classList.add('active');
-  updateDateDisplay();
-}
-
 function deleteLog(key) {
   if (!confirm(`${key} 기록을 삭제하시겠습니까?`)) return;
   const data = loadData();
   delete data.logs[key];
   saveData(data);
-  selectedHistoryKey = null;
   closeDayDetail();
   renderPhases();
-  document.getElementById('historySection').style.display = '';
   showToast('삭제 완료');
 }
 
