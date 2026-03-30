@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>스위치온 다이어트 트래커</title>
+<!-- PWA / iOS 홈 화면 앱 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="스위치온">
+<meta name="theme-color" content="#3D3530">
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjM0QzNTMwIi8+PHRleHQgeD0iOTAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0YwRUVFOSIgZm9udC1zaXplPSI3MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI4MDAiPlNPPC90ZXh0Pjwvc3ZnPg==">
+<style>
+  :root {
+    --primary: #9C8B7A;
+    --primary-light: #B5A596;
+    --accent: #C27C5E;
+    --success: #8BAA7C;
+    --warning: #D4A96A;
+    --bg: #F0EEE9;
+    --card: #FFFFFF;
+    --text: #3D3530;
+    --text-light: #8A7E76;
+    --border: #E5E0DA;
+    --shadow: 0 2px 12px rgba(61,53,48,0.06);
+    --header-bg: #3D3530;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .app-header {
+    background: var(--header-bg);
+    color: #F0EEE9;
+    padding: 24px 20px 20px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 20px rgba(61,53,48,0.15);
+  }
+
+  .app-header h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+  .app-header .subtitle { font-size: 0.8rem; opacity: 0.75; margin-top: 4px; }
+
+  .tab-nav {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 68px;
+    z-index: 99;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    flex: 1; min-width: 80px; padding: 12px 8px; border: none; background: none;
+    font-size: 0.78rem; color: var(--text-light); cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap;
+  }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  .tab-content { display: none; padding: 16px; max-width: 600px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  .card {
+    background: var(--card); border-radius: 14px; padding: 18px; margin-bottom: 14px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+  }
+
+  .card-title {
+    font-size: 0.95rem; font-weight: 700; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title .icon { font-size: 1.1rem; }
+
+  /* Day/Phase banner */
+  .day-phase-banner {
+    text-align: center;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    border-radius: 10px;
+    background: var(--header-bg);
+    color: #F0EEE9;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .day-phase-banner .phase-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+
+  /* Phase guide */
+  .phase-guide {
+    background: var(--bg); border: 1px dashed var(--primary); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 14px; font-size: 0.78rem;
+    color: var(--text-light); line-height: 1.5;
+  }
+  .phase-guide strong { color: var(--primary); }
+
+  /* Meal slot */
+  .meal-slot { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .meal-slot-header {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    background: var(--bg); font-size: 0.82rem; font-weight: 600;
+  }
+  .meal-slot-header .meal-type-tag { font-size: 0.68rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+  .meal-type-tag.shake { background: #F3E8E0; color: #9C6B4A; }
+  .meal-type-tag.food { background: #E8EDE5; color: #5A7350; }
+  .meal-type-tag.snack { background: #F0ECE0; color: #8A7340; }
+  .meal-type-tag.free { background: #EAE8E4; color: var(--text-light); }
+  .meal-slot-body { padding: 10px 12px; }
+  .meal-slot-body textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.82rem; background: var(--bg); color: var(--text);
+    resize: vertical; min-height: 40px; transition: border 0.2s;
+  }
+  .meal-slot-body textarea:focus { outline: none; border-color: var(--primary); background: white; }
+
+  /* Supplement */
+  .supplement-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .supplement-item {
+    display: flex; align-items: center; gap: 8px; font-size: 0.82rem; cursor: pointer;
+    padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+    background: white; transition: all 0.2s; user-select: none;
+  }
+  .supplement-item:has(input:checked) { border-color: var(--success); background: rgba(139,170,124,0.08); }
+  .supplement-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
+
+  /* Exercise row */
+  .exercise-entry {
+    display: grid; grid-template-columns: 1fr 1fr 32px; gap: 8px;
+    align-items: end; margin-bottom: 10px;
+  }
+  .exercise-entry select, .exercise-entry input {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 0.85rem; background: var(--bg); color: var(--text); transition: border 0.2s;
+  }
+  .exercise-entry select:focus, .exercise-entry input:focus { outline: none; border-color: var(--primary); background: white; }
+  .exercise-entry .remove-btn {
+    width: 32px; height: 40px; border: none; background: none; color: var(--accent);
+    font-size: 1.2rem; cursor: pointer; border-radius: 8px; transition: background 0.2s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .exercise-entry .remove-btn:hover { background: rgba(194,124,94,0.1); }
+
+  .btn-add-exercise {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 8px; border: 1.5px dashed var(--border); border-radius: 10px;
+    background: none; color: var(--text-light); font-size: 0.82rem; cursor: pointer;
+    transition: all 0.2s; margin-bottom: 4px;
+  }
+  .btn-add-exercise:hover { border-color: var(--primary); color: var(--primary); }
+
+  /* BMI display */
+  .bmi-display {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    padding: 10px 14px; background: var(--bg); border-radius: 10px;
+  }
+  .bmi-value { font-size: 1.3rem; font-weight: 800; color: var(--primary); }
+  .bmi-label { font-size: 0.75rem; color: var(--text-light); }
+  .bmi-category {
+    font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 8px;
+    margin-left: auto;
+  }
+  .bmi-cat-under { background: #E3F2FD; color: #1565C0; }
+  .bmi-cat-normal { background: #E8EDE5; color: #5A7350; }
+  .bmi-cat-over { background: #FFF3E0; color: #E65100; }
+  .bmi-cat-obese { background: #F3E8E0; color: #C27C5E; }
+
+
+  /* Current phase banner */
+  .current-phase-banner { background: var(--header-bg); color: #F0EEE9; border-radius: 14px; padding: 16px 18px; }
+  .current-phase-banner .cpb-name { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; }
+  .current-phase-banner .cpb-period { font-size: 0.75rem; opacity: 0.75; margin-bottom: 8px; }
+  .current-phase-banner .cpb-desc { font-size: 0.82rem; line-height: 1.5; opacity: 0.9; }
+
+  /* Form */
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 6px; color: var(--text); }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 0.85rem; background: var(--bg); color: var(--text); transition: border 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); background: white; }
+  .form-group textarea { resize: vertical; min-height: 60px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* Date select row */
+  .date-select-row { display: grid; grid-template-columns: 100px 80px 80px; gap: 8px; align-items: end; }
+  .date-select-row select {
+    padding: 10px 8px; border: 1.5px solid var(--border); border-radius: 10px;
+    font-size: 0.85rem; background: var(--bg); color: var(--text); transition: border 0.2s;
+  }
+  .date-select-row select:focus { outline: none; border-color: var(--primary); background: white; }
+  .date-select-row label { font-size: 0.7rem; color: var(--text-light); margin-bottom: 4px; display: block; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 11px 20px; border: none; border-radius: 10px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-primary { background: var(--header-bg); color: #F0EEE9; width: 100%; }
+  .btn-primary:hover { background: var(--primary); }
+  .btn-danger { background: var(--accent); color: white; padding: 6px 12px; font-size: 0.75rem; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text-light); padding: 6px 12px; font-size: 0.75rem; }
+
+  /* History */
+  .log-entry { padding: 14px; border-bottom: 1px solid var(--border); }
+  .log-entry:last-child { border-bottom: none; }
+  .log-date { font-weight: 700; font-size: 0.85rem; margin-bottom: 8px; color: var(--primary); }
+  .log-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 8px; margin-bottom: 8px; }
+  .log-stat { text-align: center; padding: 6px; background: var(--bg); border-radius: 8px; }
+  .log-stat .value { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+  .log-stat .label { font-size: 0.7rem; color: var(--text-light); }
+  .log-meals { font-size: 0.8rem; color: var(--text-light); line-height: 1.6; }
+  .log-actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+
+  .meal-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; margin-right: 4px; margin-bottom: 2px; }
+  .meal-tag.shake { background: #F3E8E0; color: #9C6B4A; }
+  .meal-tag.meal { background: #E8EDE5; color: #5A7350; }
+  .meal-tag.snack { background: #F0ECE0; color: #8A7340; }
+  .meal-tag.supp { background: #E8E5ED; color: #6B5E7A; }
+  .meal-tag.exercise { background: #E0EBE8; color: #3D6B5E; }
+  .meal-tag.period { background: #F0C4D0; color: #9A4060; }
+
+  /* Shake slot */
+  .shake-slot-body { padding: 10px 12px; }
+  .shake-check-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+  }
+  .shake-check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer; }
+  .shake-check-row label { font-size: 0.82rem; cursor: pointer; user-select: none; }
+  .shake-extra-input {
+    width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: 0.8rem; background: var(--bg); color: var(--text); transition: border 0.2s;
+  }
+  .shake-extra-input:focus { outline: none; border-color: var(--primary); background: white; }
+  .shake-extra-input::placeholder { color: var(--text-light); opacity: 0.7; }
+
+  /* Stats */
+  .stat-card { text-align: center; padding: 16px; background: var(--bg); border-radius: 12px; }
+  .stat-card .big-number { font-size: 2rem; font-weight: 800; color: var(--primary); line-height: 1; }
+  .stat-card .stat-label { font-size: 0.75rem; color: var(--text-light); margin-top: 4px; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+
+  .line-chart-wrap { position: relative; width: 100%; }
+  .line-chart-wrap svg { width: 100%; display: block; }
+  .line-chart-wrap .lc-tooltip {
+    display: none; position: absolute; background: var(--text); color: white;
+    padding: 4px 10px; border-radius: 6px; font-size: 0.72rem; white-space: nowrap;
+    pointer-events: none; transform: translate(-50%, -100%); margin-top: -8px; z-index: 5;
+  }
+  .line-chart-wrap .lc-dot { cursor: pointer; transition: r 0.15s; }
+  .line-chart-wrap .lc-dot:hover { r: 5; }
+
+  /* Settings */
+  .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-label { font-size: 0.85rem; }
+  .setting-desc { font-size: 0.72rem; color: var(--text-light); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .empty-state p { font-size: 0.85rem; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px);
+    background: var(--header-bg); color: #F0EEE9; padding: 10px 20px; border-radius: 10px;
+    font-size: 0.83rem; z-index: 200; transition: transform 0.3s ease; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .date-nav {
+    display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 14px;
+  }
+  .date-nav button {
+    background: none; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 6px 12px; cursor: pointer; font-size: 0.85rem; color: var(--text);
+  }
+  .date-nav .current-date { font-weight: 700; font-size: 0.95rem; }
+
+  .progress-ring { display: inline-block; position: relative; width: 80px; height: 80px; }
+  .progress-ring svg { transform: rotate(-90deg); }
+  .progress-ring .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 1.1rem; font-weight: 800; color: var(--primary); }
+
+  /* Calendar */
+  .cal-month-label { font-size: 0.85rem; font-weight: 700; color: var(--text); text-align: center; margin: 10px 0 6px; }
+  .cal-month-label:first-child { margin-top: 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 4px; }
+  .cal-header { text-align: center; font-size: 0.68rem; font-weight: 600; color: var(--text-light); padding: 4px 0; }
+  .cal-header.sun { color: var(--accent); }
+  .cal-header.sat { color: #6B8E9B; }
+  .cal-day {
+    text-align: center; padding: 4px 2px; border-radius: 10px;
+    min-height: 44px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 1px; position: relative;
+  }
+  .cal-day.empty { visibility: hidden; }
+  .cal-day.non-program .cal-date { color: var(--text-light); opacity: 0.3; font-size: 0.75rem; }
+  .cal-day.program { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+  .cal-day.program:hover { transform: scale(1.08); z-index: 1; }
+  .cal-day.program.selected { box-shadow: 0 0 0 2.5px var(--header-bg); z-index: 2; }
+  .cal-date { font-size: 0.78rem; font-weight: 700; line-height: 1.2; }
+  .cal-prog-num { font-size: 0.56rem; font-weight: 600; opacity: 0.75; line-height: 1; }
+  /* Calendar - done */
+  .cal-day.done.p1 { background: #C27C5E; } .cal-day.done.p2 { background: #D4A96A; }
+  .cal-day.done.p3 { background: #8BAA7C; } .cal-day.done.p4 { background: #6B8E9B; }
+  .cal-day.done.p5 { background: #9B7AAC; }
+  .cal-day.done .cal-date, .cal-day.done .cal-prog-num { color: white; }
+  /* Calendar - future */
+  .cal-day.future.p1 { background: rgba(194,124,94,0.14); }
+  .cal-day.future.p2 { background: rgba(212,169,106,0.14); }
+  .cal-day.future.p3 { background: rgba(139,170,124,0.14); }
+  .cal-day.future.p4 { background: rgba(107,142,155,0.14); }
+  .cal-day.future.p5 { background: rgba(155,122,172,0.14); }
+  .cal-day.future.p1 .cal-date { color: #C27C5E; } .cal-day.future.p1 .cal-prog-num { color: #C27C5E; }
+  .cal-day.future.p2 .cal-date { color: #D4A96A; } .cal-day.future.p2 .cal-prog-num { color: #D4A96A; }
+  .cal-day.future.p3 .cal-date { color: #6A8A5C; } .cal-day.future.p3 .cal-prog-num { color: #6A8A5C; }
+  .cal-day.future.p4 .cal-date { color: #6B8E9B; } .cal-day.future.p4 .cal-prog-num { color: #6B8E9B; }
+  .cal-day.future.p5 .cal-date { color: #9B7AAC; } .cal-day.future.p5 .cal-prog-num { color: #9B7AAC; }
+  /* Calendar - today */
+  .cal-day.today { box-shadow: inset 0 0 0 2px var(--header-bg); }
+  /* Calendar - missed */
+  .cal-day.missed { background: rgba(194,124,94,0.08); }
+  .cal-day.missed .cal-date { color: var(--accent); } .cal-day.missed .cal-prog-num { color: var(--accent); }
+  /* Calendar - fasting dot */
+  .cal-day.program.fasting::after {
+    content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+    width: 4px; height: 4px; border-radius: 50%; background: var(--header-bg);
+  }
+  .cal-day.done.fasting::after { background: rgba(255,255,255,0.7); }
+  .cal-day.future.fasting::after { background: var(--text-light); }
+  /* Calendar legend */
+  .cal-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; font-size: 0.63rem; color: var(--text-light); }
+  .cal-legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 1px; }
+
+  /* Fasting day picker */
+  .fasting-picker { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 2px; }
+  .fasting-day {
+    text-align: center; padding: 7px 2px; border-radius: 8px; font-size: 0.76rem;
+    font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
+    background: white; transition: all 0.2s; position: relative; user-select: none;
+  }
+  .fasting-day:hover { border-color: var(--primary-light); }
+  .fasting-day.active { background: var(--header-bg); color: #F0EEE9; border-color: var(--header-bg); }
+  .fasting-day.recommended::after {
+    content: '\2605'; position: absolute; top: -1px; right: 2px; font-size: 0.5rem; color: var(--warning);
+  }
+  .fasting-day.active.recommended::after { color: rgba(240,238,233,0.7); }
+  .fasting-phase-label { font-size: 0.72rem; color: var(--text-light); margin: 8px 0 4px; font-weight: 600; }
+  .fasting-reset-btn {
+    background: none; border: none; font-size: 0.75rem; color: var(--accent);
+    cursor: pointer; padding: 2px 4px; text-decoration: underline;
+  }
+
+  /* Day detail panel */
+  .day-detail-panel { margin-top: 10px; padding: 14px 16px; background: var(--bg); border-radius: 12px; text-align: left; animation: fadeIn 0.2s ease; }
+  .day-detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .day-detail-header .day-title { font-size: 0.88rem; font-weight: 700; color: var(--primary); }
+  .day-detail-header .close-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-light); padding: 2px 6px; border-radius: 6px; }
+  .day-detail-header .close-btn:hover { background: rgba(0,0,0,0.05); }
+  .day-detail-body { font-size: 0.8rem; color: var(--text); line-height: 1.6; }
+  .day-detail-body .detail-row { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .day-detail-body .detail-row:last-child { border-bottom: none; }
+  .day-detail-body .detail-label { font-weight: 600; color: var(--text-light); min-width: 60px; flex-shrink: 0; }
+  .day-detail-empty { text-align: center; padding: 16px; color: var(--text-light); font-size: 0.82rem; }
+  .day-detail-actions { display: flex; gap: 8px; margin-top: 10px; justify-content: center; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Foods tab */
+  .food-phase-selector {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px;
+  }
+  .food-phase-btn {
+    padding: 8px 14px; border: 1.5px solid var(--border); border-radius: 20px;
+    background: white; font-size: 0.78rem; cursor: pointer; transition: all 0.2s;
+    color: var(--text-light); font-weight: 600;
+  }
+  .food-phase-btn.active { border-color: var(--primary); background: var(--primary); color: white; }
+  .food-phase-btn.current-phase { border-color: var(--accent); }
+  .food-list-section { margin-bottom: 16px; }
+  .food-list-title {
+    font-size: 0.88rem; font-weight: 700; margin-bottom: 8px; padding: 6px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .food-list-title.allowed { color: var(--success); }
+  .food-list-title.disallowed { color: var(--accent); }
+  .food-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .food-chip {
+    display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px;
+    border-radius: 16px; font-size: 0.78rem; font-weight: 500;
+  }
+  .food-chip.allowed { background: rgba(139,170,124,0.12); color: #5A7350; border: 1px solid rgba(139,170,124,0.25); }
+  .food-chip.disallowed { background: rgba(194,124,94,0.1); color: #9C6B4A; border: 1px solid rgba(194,124,94,0.2); }
+  .food-category { font-size: 0.72rem; color: var(--text-light); margin: 10px 0 6px; font-weight: 600; }
+  .food-note {
+    font-size: 0.78rem; color: var(--text-light); line-height: 1.5;
+    padding: 10px 12px; background: var(--bg); border-radius: 8px; margin-top: 10px;
+    border-left: 3px solid var(--primary);
+  }
+
+  @media (max-width: 400px) {
+    .form-row { grid-template-columns: 1fr; }
+    .form-row-3 { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: 1fr 1fr; }
+    .supplement-row { flex-direction: column; }
+    .exercise-entry { grid-template-columns: 1fr 80px 32px; }
+    .date-select-row { grid-template-columns: 1fr 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>스위치온 다이어트 트래커</h1>
+  <div class="subtitle" id="headerSubtitle">나의 4주 변화 기록</div>
+</div>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" data-tab="today">오늘 기록</button>
+  <button class="tab-btn" data-tab="progress">진행/기록</button>
+  <button class="tab-btn" data-tab="foods">허용식품</button>
+  <button class="tab-btn" data-tab="stats">통계</button>
+  <button class="tab-btn" data-tab="settings">설정</button>
+</nav>
+
+<!-- 오늘 기록 -->
+<div class="tab-content active" id="tab-today">
+  <div class="date-nav">
+    <button onclick="changeDate(-1)">&lt;</button>
+    <span class="current-date" id="currentDate"></span>
+    <button onclick="changeDate(1)">&gt;</button>
+    <button onclick="goToday()" style="font-size:0.75rem;">오늘</button>
+  </div>
+
+  <!-- 일차/단계 배너 -->
+  <div class="day-phase-banner" id="dayPhaseBanner" style="display:none;"></div>
+
+  <!-- 신체 기록 + BMI -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#9878;</span> 신체 기록</div>
+    <div class="form-group">
+      <label>체중 (kg)</label>
+      <input type="number" id="weight" step="0.1" placeholder="00.0" oninput="updateBMI()">
+    </div>
+    <div class="bmi-display" id="bmiDisplay" style="display:none;">
+      <div>
+        <div class="bmi-label">BMI</div>
+        <div class="bmi-value" id="bmiValue">-</div>
+      </div>
+      <span class="bmi-category" id="bmiCategory"></span>
+    </div>
+  </div>
+
+  <!-- 식단 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#127860;</span> 식단 기록</div>
+    <div id="phaseGuide"></div>
+    <div id="mealSlots"></div>
+    <div class="form-group">
+      <label>단식 여부</label>
+      <select id="fastingType">
+        <option value="none">단식 안함</option>
+        <option value="16h">16:8 간헐적 단식</option>
+        <option value="24h">24시간 단식</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 영양제 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#128138;</span> 영양제 섭취</div>
+    <div class="supplement-row">
+      <label class="supplement-item">
+        <input type="checkbox" id="suppMorningProbiotic"> 아침 유산균
+      </label>
+      <label class="supplement-item">
+        <input type="checkbox" id="suppLunchVitamin"> 점심 영양제
+      </label>
+    </div>
+  </div>
+
+  <!-- 운동 (드롭다운 + 추가 버튼) -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#127939;</span> 운동 기록</div>
+    <div id="exerciseList"></div>
+    <button type="button" class="btn-add-exercise" onclick="addExerciseRow()">+ 운동 추가</button>
+  </div>
+
+  <!-- 수면 (질 제거) -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#128164;</span> 수면</div>
+    <div class="form-group">
+      <label>수면 시간 <span id="sleepDisplay" style="font-weight:700;color:var(--accent);">-</span></label>
+      <input type="range" id="sleepHours" min="0" max="12" step="0.5" value="0" oninput="document.getElementById('sleepDisplay').textContent=this.value>0?this.value+'시간':'-'" style="width:100%;accent-color:var(--primary);">
+    </div>
+  </div>
+
+  <!-- 컨디션/메모 -->
+  <div class="card">
+    <div class="card-title"><span class="icon">&#128221;</span> 오늘의 컨디션</div>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="form-group" style="margin-bottom:0;">
+        <label>컨디션 (1~5)</label>
+        <select id="condition">
+          <option value="">선택</option>
+          <option value="1">1 - 매우 나쁨</option>
+          <option value="2">2 - 힘들었음</option>
+          <option value="3">3 - 보통</option>
+          <option value="4">4 - 괜찮음</option>
+          <option value="5">5 - 매우 좋음</option>
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;padding-bottom:2px;">
+        <label class="supplement-item" style="border-color:#F0C4D0;">
+          <input type="checkbox" id="isPeriod" style="accent-color:#D4849A;"> 생리 중
+        </label>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>메모</label>
+      <textarea id="dailyMemo" placeholder="오늘의 느낌, 특이사항 등..."></textarea>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" onclick="saveDaily()">저장하기</button>
+</div>
+
+<!-- 진행/기록 (합친 탭) -->
+<div class="tab-content" id="tab-progress">
+  <!-- 현재 단계 배너 -->
+  <div class="card" id="currentPhaseBanner" style="display:none;"></div>
+  <!-- 진행률 + 달력 -->
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;">
+      <div class="progress-ring">
+        <svg width="80" height="80">
+          <circle cx="40" cy="40" r="34" stroke="#E5E0DA" stroke-width="6" fill="none"/>
+          <circle id="progressCircle" cx="40" cy="40" r="34" stroke="#9C8B7A" stroke-width="6" fill="none"
+            stroke-dasharray="213.6" stroke-dashoffset="213.6" stroke-linecap="round"/>
+        </svg>
+        <span class="progress-text" id="progressPercent">0%</span>
+      </div>
+      <div>
+        <div style="font-size:0.9rem;font-weight:700;">전체 진행률</div>
+        <div id="progressDayLabel" style="font-size:0.75rem;color:var(--text-light);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div id="calendarContainer"></div>
+    <div id="dayDetailPanel"></div>
+  </div>
+  <!-- 기록 목록 섹션 -->
+  <div style="margin-top:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;">
+      <div class="card-title" style="font-size:0.95rem;font-weight:700;margin-bottom:0;display:flex;align-items:center;gap:8px;">
+        <span class="icon">&#128203;</span> 기록 목록
+      </div>
+      <button class="btn btn-primary" onclick="goToTodayTab()" style="width:auto;padding:8px 16px;font-size:0.78rem;">+ 기록 추가</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div>
+
+<!-- 허용식품/비허용식품 -->
+<div class="tab-content" id="tab-foods">
+  <div id="foodsContent"></div>
+</div>
+
+<!-- 통계 -->
+<div class="tab-content" id="tab-stats">
+  <div class="card">
+    <div class="card-title"><span class="icon">&#128200;</span> 요약</div>
+    <div class="stats-grid" id="summaryStats"></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span class="icon">&#9878;</span> 체중 변화</div>
+    <div class="line-chart-wrap" id="weightChart"></div>
+  </div>
+</div>
+
+<!-- 설정 -->
+<div class="tab-content" id="tab-settings">
+  <div class="card">
+    <div class="card-title"><span class="icon">&#9881;</span> 기본 설정</div>
+    <div class="form-group">
+      <label>시작일</label>
+      <div class="date-select-row">
+        <div>
+          <label>년</label>
+          <select id="startYear"></select>
+        </div>
+        <div>
+          <label>월</label>
+          <select id="startMonth"></select>
+        </div>
+        <div>
+          <label>일</label>
+          <select id="startDay"></select>
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>키 (cm)</label>
+      <input type="number" id="height" step="0.1" placeholder="165.0">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>시작 체중 (kg)</label>
+        <input type="number" id="startWeight" step="0.1" placeholder="00.0">
+      </div>
+      <div class="form-group">
+        <label>목표 체중 (kg)</label>
+        <input type="number" id="goalWeight" step="0.1" placeholder="00.0">
+      </div>
+    </div>
+    <div class="bmi-display" id="settingsBmiDisplay" style="display:none; margin-top:14px;">
+      <div>
+        <div class="bmi-label">현재 BMI</div>
+        <div class="bmi-value" id="settingsBmiValue">-</div>
+      </div>
+      <span class="bmi-category" id="settingsBmiCategory"></span>
+    </div>
+    <button class="btn btn-primary" onclick="saveSettings()" style="margin-top:10px;">설정 저장</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:8px;"><span class="icon">&#127748;</span> 단식일 설정</span>
+      <button class="fasting-reset-btn" onclick="resetFastingDays()">권장일로 초기화</button>
+    </div>
+    <div style="font-size:0.78rem;color:var(--text-light);margin-bottom:8px;">단식할 날을 눌러 선택/해제하세요. <span style="color:var(--warning);">&#9733;</span>는 권장 단식일입니다.</div>
+    <div id="fastingPicker"></div>
+    <button class="btn btn-primary" onclick="saveFastingDays()" style="margin-top:10px;">단식일 저장</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="icon">&#128190;</span> 데이터 관리</div>
+    <div class="setting-item">
+      <div><div class="setting-label">데이터 내보내기 (JSON)</div><div class="setting-desc">모든 기록을 파일로 저장</div></div>
+      <button class="btn btn-outline" onclick="exportData()">내보내기</button>
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-label">데이터 가져오기</div><div class="setting-desc">백업 파일에서 복원</div></div>
+      <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">가져오기</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <div class="setting-item">
+      <div><div class="setting-label">모든 데이터 초기화</div><div class="setting-desc">주의: 되돌릴 수 없습니다</div></div>
+      <button class="btn btn-danger" onclick="resetAllData()">초기화</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'switchon_diet_tracker';
+
+let _dataCache = null;
+
+function loadData() {
+  if (_dataCache) return _dataCache;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) { _dataCache = { settings: {}, logs: {} }; return _dataCache; }
+  try { _dataCache = JSON.parse(raw); return _dataCache; } catch { _dataCache = { settings: {}, logs: {} }; return _dataCache; }
+}
+
+function saveData(data) {
+  _dataCache = data;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
+// ===== PHASES =====
+const PHASES = [
+  {
+    id: 1, name: '1단계: 지방 대사 스위치 켜기', period: '1~3일차',
+    desc: '하루 4번 단백질 쉐이크만 섭취하며 장을 쉬게 합니다.',
+    meals: [
+      { slot:'breakfast', label:'아침', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'lunch', label:'점심', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'snack', label:'간식', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'dinner', label:'저녁', type:'shake', hint:'단백질 쉐이크' }
+    ],
+    guide: '하루 4번 쉐이크만 섭취. 일반 식사 완전 중단!'
+  },
+  {
+    id: 2, name: '2단계: 렙틴 저항성/지방간 개선', period: '4~7일차',
+    desc: '점심에 저탄수화물 식사 허용. 잡곡밥 반 공기 + 단백질 위주.',
+    meals: [
+      { slot:'breakfast', label:'아침', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'lunch', label:'점심', type:'food', hint:'잡곡밥 반공기 + 단백질 반찬 (저탄수)' },
+      { slot:'snack', label:'간식', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'dinner', label:'저녁', type:'shake', hint:'단백질 쉐이크' }
+    ],
+    guide: '쉐이크 3회 + 점심 저탄수 식사 1회 (잡곡밥 반공기 + 단백질)'
+  },
+  {
+    id: 3, name: '3단계: 간헐적 단식 도입', period: '2주차 (8~14일)',
+    desc: '하루 2식 + 쉐이크 2회. 점심 저탄수, 저녁 무탄수. 주 1회 24시간 단식.',
+    meals: [
+      { slot:'breakfast', label:'아침', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'lunch', label:'점심', type:'food', hint:'저탄수 식사 (잡곡밥 반공기 + 단백질)' },
+      { slot:'snack', label:'간식', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'dinner', label:'저녁', type:'food', hint:'무탄수 식사 (단백질 + 채소 위주)' }
+    ],
+    guide: '쉐이크 2회 + 점심(저탄수) + 저녁(무탄수). 주 1회 24h 단식 도전!'
+  },
+  {
+    id: 4, name: '4단계: 대사유연성 회복', period: '3주차 (15~21일)',
+    desc: '간헐적 단식 주 2회. 대사 유연성 회복과 신진대사 최적화.',
+    meals: [
+      { slot:'breakfast', label:'아침', type:'shake', hint:'단백질 쉐이크' },
+      { slot:'lunch', label:'점심', type:'food', hint:'저탄수 식사' },
+      { slot:'snack', label:'간식', type:'snack', hint:'견과류, 삶은 달걀 등 (소량)' },
+      { slot:'dinner', label:'저녁', type:'food', hint:'저탄수 식사 (단백질 + 채소)' }
+    ],
+    guide: '주 2회 24h 단식. 저탄수 식사 유지 + 운동 강도 높이기!'
+  },
+  {
+    id: 5, name: '5단계: 체지방 감량 극대화', period: '4주차 (22~28일)',
+    desc: '주 3회 24시간 단식. 탄수화물 간식 제한적 허용. 체지방 감량 극대화.',
+    meals: [
+      { slot:'breakfast', label:'아침', type:'free', hint:'쉐이크 또는 가벼운 식사' },
+      { slot:'lunch', label:'점심', type:'food', hint:'저탄수 식사' },
+      { slot:'snack', label:'간식', type:'snack', hint:'제한적 탄수화물 간식 허용' },
+      { slot:'dinner', label:'저녁', type:'food', hint:'저탄수 식사' }
+    ],
+    guide: '주 3회 24h 단식. 탄수 간식 제한적 허용. 마지막 스퍼트!'
+  }
+];
+
+const DEFAULT_MEALS = [
+  { slot:'breakfast', label:'아침', type:'free', hint:'' },
+  { slot:'lunch', label:'점심', type:'free', hint:'' },
+  { slot:'snack', label:'간식', type:'free', hint:'' },
+  { slot:'dinner', label:'저녁', type:'free', hint:'' }
+];
+
+const EXERCISE_TYPES = ['유산소','근력','스트레칭'];
+const DEFAULT_FASTING_DAYS = [12, 17, 20, 23, 25, 27];
+
+let currentViewDate = new Date();
+let exerciseRows = [];
+let formDirty = false;
+let selectedHistoryKey = null;
+
+// ===== UTILITY =====
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDate(d) {
+  const days = ['일','월','화','수','목','금','토'];
+  return `${d.getFullYear()}. ${d.getMonth()+1}. ${d.getDate()} (${days[d.getDay()]})`;
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function getDayNumber(date) {
+  const data = loadData();
+  if (!data.settings.startDate) return -1;
+  const start = new Date(data.settings.startDate);
+  start.setHours(0,0,0,0);
+  const target = new Date(date);
+  target.setHours(0,0,0,0);
+  return Math.floor((target - start) / 86400000) + 1;
+}
+
+function getCurrentPhase(dayNum) {
+  if (dayNum <= 0) return 0;
+  if (dayNum <= 3) return 1;
+  if (dayNum <= 7) return 2;
+  if (dayNum <= 14) return 3;
+  if (dayNum <= 21) return 4;
+  if (dayNum <= 28) return 5;
+  return 5;
+}
+
+function getPhaseConfig(n) { return (n >= 1 && n <= 5) ? PHASES[n-1] : null; }
+
+function getFastingDays(data) {
+  return new Set(data.settings.fastingDays || DEFAULT_FASTING_DAYS);
+}
+
+// ===== BMI =====
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm || heightCm <= 0) return null;
+  const m = heightCm / 100;
+  return weightKg / (m * m);
+}
+
+function getBMICategory(bmi) {
+  if (bmi < 18.5) return { label: '저체중', cls: 'bmi-cat-under' };
+  if (bmi < 23) return { label: '정상', cls: 'bmi-cat-normal' };
+  if (bmi < 25) return { label: '과체중', cls: 'bmi-cat-over' };
+  return { label: '비만', cls: 'bmi-cat-obese' };
+}
+
+function updateBMI() {
+  const data = loadData();
+  const heightCm = data.settings.height;
+  const weightKg = parseFloat(document.getElementById('weight').value);
+  const el = document.getElementById('bmiDisplay');
+
+  if (!heightCm || !weightKg) { el.style.display = 'none'; return; }
+
+  const bmi = calcBMI(weightKg, heightCm);
+  if (!bmi) { el.style.display = 'none'; return; }
+
+  const cat = getBMICategory(bmi);
+  document.getElementById('bmiValue').textContent = bmi.toFixed(1);
+  const catEl = document.getElementById('bmiCategory');
+  catEl.textContent = cat.label;
+  catEl.className = 'bmi-category ' + cat.cls;
+  el.style.display = 'flex';
+}
+
+// ===== DATE SELECT (설정 시작일) =====
+function initDateSelects() {
+  const yearSel = document.getElementById('startYear');
+  const monthSel = document.getElementById('startMonth');
+  const daySel = document.getElementById('startDay');
+
+  yearSel.innerHTML = '<option value="">년</option>';
+  for (let y = 2024; y <= 2030; y++) {
+    yearSel.innerHTML += `<option value="${y}">${y}년</option>`;
+  }
+
+  monthSel.innerHTML = '<option value="">월</option>';
+  for (let m = 1; m <= 12; m++) {
+    monthSel.innerHTML += `<option value="${m}">${m}월</option>`;
+  }
+
+  function updateDays() {
+    const y = parseInt(yearSel.value) || 2026;
+    const m = parseInt(monthSel.value) || 1;
+    const maxDay = new Date(y, m, 0).getDate();
+    const curDay = parseInt(daySel.value) || 0;
+    daySel.innerHTML = '<option value="">일</option>';
+    for (let d = 1; d <= maxDay; d++) {
+      daySel.innerHTML += `<option value="${d}" ${d === curDay ? 'selected' : ''}>${d}일</option>`;
+    }
+  }
+
+  yearSel.addEventListener('change', updateDays);
+  monthSel.addEventListener('change', updateDays);
+  updateDays();
+}
+
+function getStartDateFromSelects() {
+  const y = document.getElementById('startYear').value;
+  const m = document.getElementById('startMonth').value;
+  const d = document.getElementById('startDay').value;
+  if (!y || !m || !d) return '';
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function setStartDateSelects(dateStr) {
+  if (!dateStr) return;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return;
+  document.getElementById('startYear').value = parseInt(parts[0]);
+  document.getElementById('startMonth').value = parseInt(parts[1]);
+  // trigger day rebuild
+  document.getElementById('startMonth').dispatchEvent(new Event('change'));
+  setTimeout(() => {
+    document.getElementById('startDay').value = parseInt(parts[2]);
+  }, 10);
+}
+
+// ===== TAB NAVIGATION =====
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (formDirty && document.querySelector('[data-tab="today"]').classList.contains('active') && btn.dataset.tab !== 'today') {
+      if (!confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+      formDirty = false;
+    }
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
+    if (btn.dataset.tab === 'progress') { renderPhases(); renderHistory(); }
+    if (btn.dataset.tab === 'foods') renderFoods();
+    if (btn.dataset.tab === 'stats') renderStats();
+    if (btn.dataset.tab === 'settings') loadSettings();
+  });
+});
+
+// ===== DATE NAVIGATION =====
+function updateDateDisplay() {
+  document.getElementById('currentDate').textContent = formatDate(currentViewDate);
+  loadDailyForm();
+}
+function changeDate(delta) {
+  if (formDirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+  formDirty = false;
+  currentViewDate.setDate(currentViewDate.getDate() + delta);
+  updateDateDisplay();
+}
+function goToday() {
+  if (formDirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+  formDirty = false;
+  currentViewDate = new Date();
+  updateDateDisplay();
+}
+
+// ===== GO TO TODAY TAB (기록 추가) =====
+function goToTodayTab() {
+  currentViewDate = new Date();
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-tab="today"]').classList.add('active');
+  document.getElementById('tab-today').classList.add('active');
+  updateDateDisplay();
+}
+
+// ===== DAY/PHASE BANNER =====
+function renderDayPhaseBanner() {
+  const banner = document.getElementById('dayPhaseBanner');
+  const dayNum = getDayNumber(currentViewDate);
+  if (dayNum > 0 && dayNum <= 28) {
+    const phaseNum = getCurrentPhase(dayNum);
+    const phase = getPhaseConfig(phaseNum);
+    banner.innerHTML = `${dayNum}일차 <span style="margin:0 6px;">&#183;</span> ${phase.name}`;
+    banner.style.display = 'block';
+    document.getElementById('headerSubtitle').textContent = `Day ${dayNum} / 28`;
+  } else if (dayNum > 28) {
+    banner.innerHTML = `${dayNum}일차 <span style="margin:0 6px;">&#183;</span> 유지기`;
+    banner.style.display = 'block';
+    document.getElementById('headerSubtitle').textContent = `Day ${dayNum} \u00B7 유지기`;
+  } else {
+    banner.style.display = 'none';
+    document.getElementById('headerSubtitle').textContent = '나의 4주 변화 기록';
+  }
+}
+
+// ===== MEAL SLOTS =====
+function renderMealSlots(entry) {
+  const dayNum = getDayNumber(currentViewDate);
+  const phaseNum = getCurrentPhase(dayNum);
+  const phase = getPhaseConfig(phaseNum);
+  const meals = phase ? phase.meals : DEFAULT_MEALS;
+
+  const guideEl = document.getElementById('phaseGuide');
+  if (phase) {
+    guideEl.innerHTML = `<div class="phase-guide"><strong>${phaseNum}단계</strong> ${phase.guide}</div>`;
+  } else {
+    guideEl.innerHTML = '<div class="phase-guide">설정에서 <strong>시작일</strong>을 지정하면 단계별 가이드가 표시됩니다.</div>';
+  }
+
+  const typeLabels = { shake:'쉐이크', food:'일반식', snack:'간식', free:'자유' };
+  document.getElementById('mealSlots').innerHTML = meals.map(m => {
+    const val = entry?.[`meal_${m.slot}`] ?? '';
+    if (m.type === 'shake') {
+      const shakeChecked = entry?.[`shake_${m.slot}`] ?? false;
+      const extraVal = entry?.[`meal_${m.slot}`] ?? '';
+      return `<div class="meal-slot">
+        <div class="meal-slot-header"><span>${m.label}</span><span class="meal-type-tag ${m.type}">${typeLabels[m.type]}</span></div>
+        <div class="shake-slot-body">
+          <div class="shake-check-row">
+            <input type="checkbox" id="shake_${m.slot}" ${shakeChecked ? 'checked' : ''}>
+            <label for="shake_${m.slot}">쉐이크 섭취</label>
+          </div>
+          <input type="text" class="shake-extra-input" id="meal_${m.slot}" placeholder="기타 음식 (선택)" value="${escapeHtml(extraVal)}">
+        </div>
+      </div>`;
+    }
+    return `<div class="meal-slot">
+      <div class="meal-slot-header"><span>${m.label}</span><span class="meal-type-tag ${m.type}">${typeLabels[m.type]}</span></div>
+      <div class="meal-slot-body"><textarea id="meal_${m.slot}" placeholder="${m.hint}">${escapeHtml(val)}</textarea></div>
+    </div>`;
+  }).join('');
+}
+
+// ===== EXERCISE ROWS =====
+function renderExerciseList() {
+  const container = document.getElementById('exerciseList');
+  if (exerciseRows.length === 0) {
+    addExerciseRow();
+    return;
+  }
+  container.innerHTML = exerciseRows.map((ex, i) => {
+    const opts = EXERCISE_TYPES.map(t =>
+      `<option value="${t}" ${ex.type === t ? 'selected' : ''}>${t}</option>`
+    ).join('');
+    return `<div class="exercise-entry">
+      <select onchange="exerciseRows[${i}].type=this.value">
+        <option value="">운동 선택</option>${opts}
+      </select>
+      <input type="number" min="0" placeholder="분" value="${ex.duration || ''}"
+        onchange="exerciseRows[${i}].duration=parseInt(this.value)||0">
+      ${exerciseRows.length > 1 ? `<button class="remove-btn" onclick="removeExerciseRow(${i})">&#10005;</button>` : '<div></div>'}
+    </div>`;
+  }).join('');
+}
+
+function addExerciseRow() {
+  exerciseRows.push({ type: '', duration: 0 });
+  renderExerciseList();
+}
+
+function removeExerciseRow(idx) {
+  exerciseRows.splice(idx, 1);
+  renderExerciseList();
+}
+
+// ===== DAILY FORM =====
+function loadDailyForm() {
+  const data = loadData();
+  const key = dateKey(currentViewDate);
+  const entry = data.logs[key];
+
+  document.getElementById('weight').value = entry?.weight ?? '';
+  document.getElementById('fastingType').value = entry?.fastingType ?? 'none';
+  document.getElementById('suppMorningProbiotic').checked = entry?.suppMorningProbiotic ?? false;
+  document.getElementById('suppLunchVitamin').checked = entry?.suppLunchVitamin ?? false;
+  const sleepVal = entry?.sleepHours ?? 0;
+  document.getElementById('sleepHours').value = sleepVal;
+  document.getElementById('sleepDisplay').textContent = sleepVal > 0 ? sleepVal + '시간' : '-';
+  document.getElementById('condition').value = entry?.condition ?? '';
+  document.getElementById('isPeriod').checked = entry?.isPeriod ?? false;
+  document.getElementById('dailyMemo').value = entry?.dailyMemo ?? '';
+
+  // exercises
+  exerciseRows = entry?.exercises && entry.exercises.length > 0
+    ? entry.exercises.map(e => ({...e}))
+    : [{ type: '', duration: 0 }];
+  renderExerciseList();
+
+  renderMealSlots(entry);
+  renderDayPhaseBanner();
+  updateBMI();
+  formDirty = false;
+}
+
+function saveDaily() {
+  const data = loadData();
+  const key = dateKey(currentViewDate);
+
+  const validExercises = exerciseRows.filter(e => e.type && e.duration > 0);
+
+  // shake checkboxes (존재하는 것만)
+  const shakeFields = {};
+  ['breakfast','lunch','snack','dinner'].forEach(slot => {
+    const el = document.getElementById(`shake_${slot}`);
+    if (el) shakeFields[`shake_${slot}`] = el.checked;
+  });
+
+  const entry = {
+    date: key,
+    weight: parseFloat(document.getElementById('weight').value) || null,
+    meal_breakfast: document.getElementById('meal_breakfast')?.value.trim() || '',
+    meal_lunch: document.getElementById('meal_lunch')?.value.trim() || '',
+    meal_snack: document.getElementById('meal_snack')?.value.trim() || '',
+    meal_dinner: document.getElementById('meal_dinner')?.value.trim() || '',
+    ...shakeFields,
+    fastingType: document.getElementById('fastingType').value,
+    suppMorningProbiotic: document.getElementById('suppMorningProbiotic').checked,
+    suppLunchVitamin: document.getElementById('suppLunchVitamin').checked,
+    exercises: validExercises,
+    sleepHours: parseFloat(document.getElementById('sleepHours').value) || null,
+    condition: parseInt(document.getElementById('condition').value) || null,
+    isPeriod: document.getElementById('isPeriod').checked,
+    dailyMemo: document.getElementById('dailyMemo').value.trim(),
+    savedAt: new Date().toISOString()
+  };
+
+  data.logs[key] = entry;
+  saveData(data);
+  formDirty = false;
+  showToast('저장 완료!');
+}
+
+// ===== PHASES RENDER =====
+function renderPhases() {
+  const data = loadData();
+  const dayNum = getDayNumber(new Date());
+  const currentPhase = getCurrentPhase(dayNum);
+
+  // 현재 단계 배너
+  const bannerEl = document.getElementById('currentPhaseBanner');
+  const phase = getPhaseConfig(currentPhase);
+  if (phase) {
+    bannerEl.className = 'card current-phase-banner';
+    bannerEl.innerHTML = `<div class="cpb-name">${phase.name}</div>
+      <div class="cpb-period">${phase.period}</div>
+      <div class="cpb-desc">${phase.desc}</div>`;
+    bannerEl.style.display = 'block';
+  } else {
+    bannerEl.style.display = 'none';
+  }
+
+  // 진행률
+  const loggedDays = Object.keys(data.logs).length;
+  const pct = Math.min(100, Math.round((loggedDays / 28) * 100));
+  const circ = 2 * Math.PI * 34;
+  document.getElementById('progressCircle').setAttribute('stroke-dashoffset', circ - (circ*pct/100));
+  document.getElementById('progressPercent').textContent = pct + '%';
+  const dayLabel = dayNum > 0 ? `${Math.min(dayNum, 28)}일차 / 28일 · ${loggedDays}일 기록` : '시작일을 설정해주세요';
+  document.getElementById('progressDayLabel').textContent = dayLabel;
+
+  renderCalendar(data, dayNum);
+
+  // 달력 재렌더 후 선택 상태 복원
+  if (selectedHistoryKey) {
+    const selDate = new Date(selectedHistoryKey + 'T00:00:00');
+    const selDay = getDayNumber(selDate);
+    if (selDay > 0) {
+      document.querySelectorAll('.cal-day.program').forEach(el => {
+        const progNum = el.querySelector('.cal-prog-num');
+        if (progNum && progNum.textContent === 'D' + selDay) el.classList.add('selected');
+      });
+    }
+  }
+}
+
+function renderCalendar(data, dayNum) {
+  const container = document.getElementById('calendarContainer');
+  if (!data.settings.startDate) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-light);font-size:0.82rem;">시작일을 설정하면 달력이 표시됩니다.</div>';
+    return;
+  }
+
+  const startDate = new Date(data.settings.startDate + 'T00:00:00');
+  const endDate = new Date(startDate); endDate.setDate(endDate.getDate() + 27);
+  const FASTING_DAYS = getFastingDays(data);
+  const phaseOf = d => d<=3?1 : d<=7?2 : d<=14?3 : d<=21?4 : 5;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const todayKey = dateKey(today);
+
+  // 프로그램 날짜 맵
+  const progMap = {};
+  for (let d = 1; d <= 28; d++) {
+    const dd = new Date(startDate); dd.setDate(dd.getDate() + d - 1);
+    progMap[dateKey(dd)] = { dayNum: d, phase: phaseOf(d), fasting: FASTING_DAYS.has(d), hasLog: !!data.logs[dateKey(dd)] };
+  }
+
+  // 표시할 월 목록
+  const months = [];
+  let cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+  const endMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0);
+  while (cur <= endMonth) {
+    months.push({ year: cur.getFullYear(), month: cur.getMonth() });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const dayNames = ['일','월','화','수','목','금','토'];
+  let html = '';
+
+  months.forEach(({ year, month }) => {
+    html += `<div class="cal-month-label">${year}년 ${month + 1}월</div><div class="cal-grid">`;
+    dayNames.forEach((n, i) => html += `<div class="cal-header${i===0?' sun':''}${i===6?' sat':''}">${n}</div>`);
+
+    const firstDow = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    for (let i = 0; i < firstDow; i++) html += '<div class="cal-day empty"></div>';
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dd = new Date(year, month, d);
+      const key = dateKey(dd);
+      const prog = progMap[key];
+      const isToday = key === todayKey;
+
+      if (prog) {
+        let status;
+        if (isToday) status = 'today';
+        else if (dd < today) status = prog.hasLog ? 'done' : 'missed';
+        else status = 'future';
+        let cls = `cal-day program p${prog.phase} ${status}`;
+        if (prog.fasting) cls += ' fasting';
+        html += `<div class="${cls}" onclick="showDayDetail(${prog.dayNum})"><span class="cal-date">${d}</span><span class="cal-prog-num">D${prog.dayNum}</span></div>`;
+      } else {
+        html += `<div class="cal-day non-program"><span class="cal-date">${d}</span></div>`;
+      }
+    }
+    html += '</div>';
+  });
+
+  html += `<div class="cal-legend">
+    <span><span class="cal-legend-dot" style="background:#C27C5E;"></span>1단계</span>
+    <span><span class="cal-legend-dot" style="background:#D4A96A;"></span>2단계</span>
+    <span><span class="cal-legend-dot" style="background:#8BAA7C;"></span>3단계</span>
+    <span><span class="cal-legend-dot" style="background:#6B8E9B;"></span>4단계</span>
+    <span><span class="cal-legend-dot" style="background:#9B7AAC;"></span>5단계</span>
+    <span><span class="cal-legend-dot" style="background:var(--header-bg);width:4px;height:4px;"></span>단식일</span>
+  </div>`;
+  container.innerHTML = html;
+}
+
+function showDayDetail(dayNum) {
+  const panel = document.getElementById('dayDetailPanel');
+  const data = loadData();
+  if (!data.settings.startDate) { panel.innerHTML = ''; return; }
+
+  // highlight selected
+  document.querySelectorAll('.cal-day.selected').forEach(el => el.classList.remove('selected'));
+  document.querySelectorAll('.cal-day.program').forEach(el => {
+    const progNum = el.querySelector('.cal-prog-num');
+    if (progNum && progNum.textContent === 'D' + dayNum) el.classList.add('selected');
+  });
+
+  const dd = new Date(data.settings.startDate + 'T00:00:00');
+  dd.setDate(dd.getDate() + dayNum - 1);
+  const key = dateKey(dd);
+  const e = data.logs[key];
+  const phaseNum = getCurrentPhase(dayNum);
+  const phase = getPhaseConfig(phaseNum);
+
+  let html = '<div class="day-detail-panel">';
+  html += `<div class="day-detail-header">
+    <span class="day-title">${dayNum}일차 · ${formatDate(dd)}${phase ? ' · ' + phase.name.split(':')[0] : ''}</span>
+    <button class="close-btn" onclick="closeDayDetail()">&times;</button>
+  </div>`;
+
+  if (!e) {
+    html += `<div class="day-detail-empty">이 날의 기록이 없습니다.</div>
+      <div class="day-detail-actions"><button class="btn btn-outline" onclick="goToDateTab('${key}')">기록하러 가기</button></div>`;
+  } else {
+    html += '<div class="day-detail-body">';
+    if (e.weight) {
+      let bmiStr = '';
+      if (data.settings.height) {
+        const bmi = calcBMI(e.weight, data.settings.height);
+        if (bmi) bmiStr = ` (BMI ${bmi.toFixed(1)})`;
+      }
+      html += `<div class="detail-row"><span class="detail-label">체중</span><span>${e.weight}kg${bmiStr}</span></div>`;
+    }
+    const slots = [{key:'breakfast',label:'아침'},{key:'lunch',label:'점심'},{key:'snack',label:'간식'},{key:'dinner',label:'저녁'}];
+    const mealParts = [];
+    slots.forEach(s => {
+      const shake = e[`shake_${s.key}`];
+      const meal = e[`meal_${s.key}`];
+      if (shake && meal) mealParts.push(`${s.label}: ✔쉐이크 + ${escapeHtml(meal)}`);
+      else if (shake) mealParts.push(`${s.label}: ✔쉐이크`);
+      else if (meal) mealParts.push(`${s.label}: ${escapeHtml(meal)}`);
+    });
+    if (mealParts.length) html += `<div class="detail-row"><span class="detail-label">식단</span><span>${mealParts.join('<br>')}</span></div>`;
+    const fastingLabel = {none:'','16h':'16:8 단식','24h':'24h 단식'}[e.fastingType] || '';
+    if (fastingLabel) html += `<div class="detail-row"><span class="detail-label">단식</span><span>${fastingLabel}</span></div>`;
+    const supps = [];
+    if (e.suppMorningProbiotic) supps.push('아침 유산균');
+    if (e.suppLunchVitamin) supps.push('점심 영양제');
+    if (supps.length) html += `<div class="detail-row"><span class="detail-label">영양제</span><span>${supps.join(', ')}</span></div>`;
+    const exList = (e.exercises || []).filter(x => x.type && x.duration > 0);
+    if (exList.length) html += `<div class="detail-row"><span class="detail-label">운동</span><span>${exList.map(x => `${x.type} ${x.duration}분`).join(', ')}</span></div>`;
+    if (e.sleepHours) html += `<div class="detail-row"><span class="detail-label">수면</span><span>${e.sleepHours}시간</span></div>`;
+    if (e.condition) {
+      const condLabels = {1:'매우 나쁨',2:'힘들었음',3:'보통',4:'괜찮음',5:'매우 좋음'};
+      html += `<div class="detail-row"><span class="detail-label">컨디션</span><span>${e.condition} - ${condLabels[e.condition]||''}</span></div>`;
+    }
+    if (e.isPeriod) html += `<div class="detail-row"><span class="detail-label">생리</span><span>생리 중</span></div>`;
+    if (e.dailyMemo) html += `<div class="detail-row"><span class="detail-label">메모</span><span>${escapeHtml(e.dailyMemo)}</span></div>`;
+    html += '</div>';
+    html += `<div class="day-detail-actions"><button class="btn btn-outline" onclick="goToDateTab('${key}')">수정하기</button></div>`;
+  }
+  html += '</div>';
+  panel.innerHTML = html;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  selectedHistoryKey = key;
+  renderHistory();
+}
+
+function closeDayDetail() {
+  document.getElementById('dayDetailPanel').innerHTML = '';
+  document.querySelectorAll('.cal-day.selected').forEach(el => el.classList.remove('selected'));
+  selectedHistoryKey = null;
+  renderHistory();
+}
+
+function goToDateTab(key) {
+  if (formDirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+  formDirty = false;
+  currentViewDate = new Date(key + 'T00:00:00');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-tab="today"]').classList.add('active');
+  document.getElementById('tab-today').classList.add('active');
+  updateDateDisplay();
+}
+
+// ===== HISTORY =====
+function renderHistory() {
+  const data = loadData();
+  const container = document.getElementById('historyList');
+
+  if (!selectedHistoryKey) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">&#128197;</div><p>달력에서 날짜를 선택하면<br>해당 날의 기록이 표시됩니다.</p></div>';
+    return;
+  }
+
+  const e = data.logs[selectedHistoryKey];
+  if (!e) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">&#128203;</div><p>이 날의 기록이 없습니다.</p></div>';
+    return;
+  }
+
+  const key = selectedHistoryKey;
+  const d = new Date(key + 'T00:00:00');
+  const dayNum = getDayNumber(d);
+  const dayLabel = (dayNum > 0 && dayNum <= 28) ? ` (${dayNum}일차)` : '';
+  const fastingLabel = {none:'','16h':'16:8 단식','24h':'24h 단식'}[e.fastingType] || '';
+
+  const mealLines = [];
+  const slots = [{key:'breakfast',label:'아침'},{key:'lunch',label:'점심'},{key:'snack',label:'간식'},{key:'dinner',label:'저녁'}];
+  slots.forEach(s => {
+    const shake = e[`shake_${s.key}`];
+    const meal = e[`meal_${s.key}`];
+    if (shake && meal) mealLines.push(`<strong>${s.label}:</strong> \u2714 쉐이크 + ${escapeHtml(meal)}`);
+    else if (shake) mealLines.push(`<strong>${s.label}:</strong> \u2714 쉐이크`);
+    else if (meal) mealLines.push(`<strong>${s.label}:</strong> ${escapeHtml(meal)}`);
+  });
+
+  const suppTags = [];
+  if (e.isPeriod) suppTags.push('<span class="meal-tag period">생리 중</span>');
+  if (e.suppMorningProbiotic) suppTags.push('<span class="meal-tag supp">유산균</span>');
+  if (e.suppLunchVitamin) suppTags.push('<span class="meal-tag supp">영양제</span>');
+
+  const totalExMin = (e.exercises || []).reduce((s,x) => s + (x.duration||0), 0);
+  const exTags = (e.exercises || []).map(x => `<span class="meal-tag exercise">${escapeHtml(x.type)} ${x.duration}분</span>`).join('');
+
+  const heightCm = data.settings.height;
+  let bmiStr = '';
+  if (e.weight && heightCm) {
+    const bmi = calcBMI(e.weight, heightCm);
+    if (bmi) bmiStr = `<div class="log-stat"><div class="value">${bmi.toFixed(1)}</div><div class="label">BMI</div></div>`;
+  }
+
+  container.innerHTML = `<div class="card"><div class="log-entry">
+    <div class="log-date">${formatDate(d)}${dayLabel}</div>
+    <div class="log-stats">
+      ${e.weight ? `<div class="log-stat"><div class="value">${e.weight}</div><div class="label">kg</div></div>` : ''}
+      ${bmiStr}
+      ${totalExMin ? `<div class="log-stat"><div class="value">${totalExMin}</div><div class="label">운동(분)</div></div>` : ''}
+    </div>
+    <div class="log-meals">
+      ${fastingLabel ? `<span class="meal-tag shake">${fastingLabel}</span>` : ''}
+      ${suppTags.join('')}
+      ${exTags}
+      ${mealLines.length ? '<div style="margin-top:6px;">' + mealLines.join('<br>') + '</div>' : ''}
+      ${e.dailyMemo ? `<div style="margin-top:4px;font-style:italic;">&#128221; ${escapeHtml(e.dailyMemo)}</div>` : ''}
+    </div>
+    <div class="log-actions">
+      <button class="btn btn-outline" onclick="editLog('${key}')">수정</button>
+      <button class="btn btn-danger" onclick="deleteLog('${key}')">삭제</button>
+    </div>
+  </div></div>`;
+}
+
+function editLog(key) {
+  if (formDirty && !confirm('저장하지 않은 변경사항이 있습니다. 이동하시겠습니까?')) return;
+  formDirty = false;
+  currentViewDate = new Date(key + 'T00:00:00');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector('[data-tab="today"]').classList.add('active');
+  document.getElementById('tab-today').classList.add('active');
+  updateDateDisplay();
+}
+
+function deleteLog(key) {
+  if (!confirm(`${key} 기록을 삭제하시겠습니까?`)) return;
+  const data = loadData();
+  delete data.logs[key];
+  saveData(data);
+  selectedHistoryKey = null;
+  closeDayDetail();
+  renderPhases();
+  showToast('삭제 완료');
+}
+
+// ===== STATS =====
+function renderStats() {
+  const data = loadData();
+  const logs = Object.values(data.logs).sort((a,b) => a.date.localeCompare(b.date));
+
+  if (logs.length === 0) {
+    document.getElementById('summaryStats').innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><p>데이터가 없습니다.</p></div>';
+    document.getElementById('weightChart').innerHTML = '';
+    return;
+  }
+
+  const weights = logs.filter(l => l.weight).map(l => l.weight);
+  const firstW = weights[0], lastW = weights[weights.length-1];
+  const diffW = firstW && lastW ? (lastW - firstW).toFixed(1) : '-';
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat-card"><div class="big-number">${logs.length}</div><div class="stat-label">기록 일수</div></div>
+    <div class="stat-card"><div class="big-number" style="color:${parseFloat(diffW)<=0?'var(--success)':'var(--accent)'}">${diffW>0?'+':''}${diffW}</div><div class="stat-label">체중 변화 (kg)</div></div>
+  `;
+
+  renderLineChart('weightChart', logs.filter(l=>l.weight), 'weight', 'kg', '#9C8B7A');
+}
+
+function renderLineChart(id, entries, field, unit, color) {
+  const el = document.getElementById(id);
+  if (entries.length === 0) { el.innerHTML = '<div style="text-align:center;color:var(--text-light);font-size:0.8rem;padding:20px;">데이터 없음</div>'; return; }
+
+  const vals = entries.map(e => e[field] || 0);
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const range = max - min || 1;
+
+  const W = 500, H = 180, padL = 40, padR = 16, padT = 16, padB = 28;
+  const chartW = W - padL - padR, chartH = H - padT - padB;
+  const n = vals.length;
+
+  const pts = vals.map((v, i) => ({
+    x: padL + (n > 1 ? (i / (n - 1)) * chartW : chartW / 2),
+    y: padT + chartH - ((v - min) / range) * chartH,
+    v, entry: entries[i]
+  }));
+
+  // Y축 눈금 (5단계)
+  const steps = 4;
+  let yLabels = '';
+  for (let i = 0; i <= steps; i++) {
+    const val = min + (range * i / steps);
+    const y = padT + chartH - (chartH * i / steps);
+    yLabels += `<line x1="${padL}" x2="${W - padR}" y1="${y}" y2="${y}" stroke="#E5E0DA" stroke-width="0.5"/>`;
+    yLabels += `<text x="${padL - 6}" y="${y + 3}" text-anchor="end" fill="#8A7E76" font-size="9">${val.toFixed(1)}</text>`;
+  }
+
+  // X축 날짜 라벨 (최대 7개)
+  let xLabels = '';
+  const labelStep = Math.max(1, Math.floor(n / 7));
+  pts.forEach((p, i) => {
+    if (i % labelStep === 0 || i === n - 1) {
+      const d = new Date(p.entry.date + 'T00:00:00');
+      xLabels += `<text x="${p.x}" y="${H - 4}" text-anchor="middle" fill="#8A7E76" font-size="9">${d.getMonth()+1}/${d.getDate()}</text>`;
+    }
+  });
+
+  // 그라디언트 영역
+  const areaPath = `M${pts[0].x},${pts[0].y} ` + pts.slice(1).map(p => `L${p.x},${p.y}`).join(' ') +
+    ` L${pts[n-1].x},${padT + chartH} L${pts[0].x},${padT + chartH} Z`;
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
+
+  // 점
+  const dots = pts.map((p, i) =>
+    `<circle class="lc-dot" cx="${p.x}" cy="${p.y}" r="3.5" fill="${color}" stroke="white" stroke-width="1.5"
+      onmouseenter="showChartTip(this,'${entries[i].date}',${p.v},'${unit}')"
+      onmouseleave="hideChartTip()"/>`
+  ).join('');
+
+  el.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${color}" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity="0.02"/>
+        </linearGradient>
+      </defs>
+      ${yLabels}${xLabels}
+      <path d="${areaPath}" fill="url(#areaGrad)"/>
+      <path d="${linePath}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}
+    </svg>
+    <div class="lc-tooltip" id="lcTooltip"></div>`;
+}
+
+function showChartTip(dot, dateStr, value, unit) {
+  const wrap = dot.closest('.line-chart-wrap');
+  const tip = wrap.querySelector('.lc-tooltip');
+  const d = new Date(dateStr + 'T00:00:00');
+  tip.textContent = `${d.getMonth()+1}/${d.getDate()}: ${value}${unit}`;
+  const rect = wrap.getBoundingClientRect();
+  const dotRect = dot.getBoundingClientRect();
+  tip.style.left = (dotRect.left - rect.left + dotRect.width / 2) + 'px';
+  tip.style.top = (dotRect.top - rect.top) + 'px';
+  tip.style.display = 'block';
+}
+
+function hideChartTip() {
+  document.querySelectorAll('.lc-tooltip').forEach(t => t.style.display = 'none');
+}
+
+// ===== SETTINGS =====
+function loadSettings() {
+  const data = loadData();
+  setStartDateSelects(data.settings.startDate || '');
+  document.getElementById('height').value = data.settings.height || '';
+  document.getElementById('goalWeight').value = data.settings.goalWeight || '';
+  document.getElementById('startWeight').value = data.settings.startWeight || '';
+  updateSettingsBMI();
+  renderFastingPicker();
+}
+
+function renderFastingPicker() {
+  const data = loadData();
+  const current = getFastingDays(data);
+  const recommended = new Set(DEFAULT_FASTING_DAYS);
+
+  const phases = [
+    { label: '1단계 (1~3일)', start: 1, end: 3 },
+    { label: '2단계 (4~7일)', start: 4, end: 7 },
+    { label: '3단계 (8~14일)', start: 8, end: 14 },
+    { label: '4단계 (15~21일)', start: 15, end: 21 },
+    { label: '5단계 (22~28일)', start: 22, end: 28 }
+  ];
+
+  let html = '';
+  phases.forEach(p => {
+    html += `<div class="fasting-phase-label">${p.label}</div><div class="fasting-picker">`;
+    for (let d = p.start; d <= p.end; d++) {
+      const active = current.has(d) ? ' active' : '';
+      const rec = recommended.has(d) ? ' recommended' : '';
+      html += `<div class="fasting-day${active}${rec}" data-day="${d}" onclick="toggleFastingDay(this)">${d}일</div>`;
+    }
+    html += '</div>';
+  });
+
+  document.getElementById('fastingPicker').innerHTML = html;
+}
+
+function toggleFastingDay(el) {
+  el.classList.toggle('active');
+}
+
+function saveFastingDays() {
+  const data = loadData();
+  const days = [];
+  document.querySelectorAll('.fasting-day.active').forEach(el => {
+    days.push(parseInt(el.dataset.day));
+  });
+  data.settings.fastingDays = days.sort((a, b) => a - b);
+  saveData(data);
+  showToast('단식일 저장 완료!');
+}
+
+function resetFastingDays() {
+  const data = loadData();
+  data.settings.fastingDays = [...DEFAULT_FASTING_DAYS];
+  saveData(data);
+  renderFastingPicker();
+  showToast('권장 단식일로 초기화되었습니다.');
+}
+
+function updateSettingsBMI() {
+  const data = loadData();
+  const heightCm = data.settings.height;
+  const el = document.getElementById('settingsBmiDisplay');
+  // 가장 최근 체중 기록 찾기
+  const keys = Object.keys(data.logs).sort().reverse();
+  let latestWeight = null;
+  for (const k of keys) {
+    if (data.logs[k].weight) { latestWeight = data.logs[k].weight; break; }
+  }
+  if (!heightCm || !latestWeight) { el.style.display = 'none'; return; }
+  const bmi = calcBMI(latestWeight, heightCm);
+  if (!bmi) { el.style.display = 'none'; return; }
+  const cat = getBMICategory(bmi);
+  document.getElementById('settingsBmiValue').textContent = bmi.toFixed(1);
+  const catEl = document.getElementById('settingsBmiCategory');
+  catEl.textContent = cat.label + ` (${latestWeight}kg 기준)`;
+  catEl.className = 'bmi-category ' + cat.cls;
+  el.style.display = 'flex';
+}
+
+function saveSettings() {
+  const data = loadData();
+  data.settings.startDate = getStartDateFromSelects();
+  data.settings.height = parseFloat(document.getElementById('height').value) || null;
+  data.settings.goalWeight = parseFloat(document.getElementById('goalWeight').value) || null;
+  data.settings.startWeight = parseFloat(document.getElementById('startWeight').value) || null;
+  saveData(data);
+  showToast('설정 저장 완료!');
+  updateDateDisplay();
+}
+
+// ===== DATA MANAGEMENT =====
+function exportData() {
+  const data = loadData();
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `switchon_diet_${dateKey(new Date())}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('데이터 내보내기 완료!');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (imported.logs && imported.settings) { saveData(imported); showToast('데이터 가져오기 완료!'); updateDateDisplay(); }
+      else { showToast('올바른 형식이 아닙니다.'); }
+    } catch { showToast('파일을 읽을 수 없습니다.'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function resetAllData() {
+  if (!confirm('정말로 모든 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+  if (!confirm('한 번 더 확인합니다. 모든 기록이 삭제됩니다.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  _dataCache = null;
+  showToast('모든 데이터가 초기화되었습니다.');
+  updateDateDisplay();
+  loadSettings();
+}
+
+// ===== FOODS (허용식품/비허용식품) =====
+const PHASE_FOODS = [
+  {
+    phase: 1, name: '1단계: 지방 대사 스위치 켜기', period: '1~3일차',
+    note: '장을 완전히 쉬게 하는 단계입니다. 단백질 쉐이크와 물, 무카페인 차만 허용됩니다.',
+    allowed: [
+      { cat: '식사', items: ['단백질 쉐이크 (하루 4회)'] },
+      { cat: '음료', items: ['물', '무카페인 차 (허브차, 루이보스 등)', '탄산수 (무가당)'] },
+      { cat: '기타', items: ['소금 (미네랄 보충)'] }
+    ],
+    disallowed: [
+      { cat: '식사', items: ['모든 일반 식사', '밥', '빵', '면류'] },
+      { cat: '과일/간식', items: ['모든 과일', '견과류', '과자', '초콜릿'] },
+      { cat: '음료', items: ['커피 (카페인)', '우유', '주스', '탄산음료', '술'] },
+      { cat: '조미료', items: ['설탕', '꿀', '시럽'] }
+    ]
+  },
+  {
+    phase: 2, name: '2단계: 렙틴 저항성/지방간 개선', period: '4~7일차',
+    note: '점심 1끼만 저탄수화물 일반식이 허용됩니다. 나머지 3끼는 쉐이크를 유지합니다.',
+    allowed: [
+      { cat: '쉐이크', items: ['단백질 쉐이크 (하루 3회)'] },
+      { cat: '탄수화물', items: ['잡곡밥 반 공기 (점심만)', '고구마 반 개', '단호박 소량'] },
+      { cat: '단백질', items: ['닭가슴살', '생선 (구이/찜)', '두부', '달걀', '소고기 (살코기)', '새우/오징어'] },
+      { cat: '채소', items: ['모든 잎채소', '브로콜리', '오이', '파프리카', '버섯', '양배추', '콩나물'] },
+      { cat: '음료', items: ['물', '무카페인 차', '블랙커피 1잔 (선택)'] },
+      { cat: '조미료', items: ['소금', '후추', '식초', '올리브오일 소량'] }
+    ],
+    disallowed: [
+      { cat: '탄수화물', items: ['흰쌀밥', '밀가루 (빵, 면, 과자)', '떡', '감자'] },
+      { cat: '당류', items: ['설탕', '꿀', '시럽', '과일 (당분 높음)'] },
+      { cat: '가공식품', items: ['라면', '햄/소시지', '치킨', '피자', '패스트푸드'] },
+      { cat: '음료', items: ['주스', '탄산음료', '우유', '술'] },
+      { cat: '기타', items: ['튀김류', '마요네즈', '케첩'] }
+    ]
+  },
+  {
+    phase: 3, name: '3단계: 간헐적 단식 도입', period: '2주차 (8~14일)',
+    note: '점심은 저탄수, 저녁은 무탄수 식사. 16:8 간헐적 단식을 실천하고, 주 1회 24시간 단식에 도전합니다.',
+    allowed: [
+      { cat: '쉐이크', items: ['단백질 쉐이크 (하루 2회)'] },
+      { cat: '점심 탄수화물', items: ['잡곡밥 반 공기', '고구마 반 개', '단호박'] },
+      { cat: '단백질', items: ['닭가슴살', '생선', '두부', '달걀', '소고기', '돼지고기 (살코기)', '새우/조개'] },
+      { cat: '채소', items: ['모든 잎채소', '브로콜리', '아스파라거스', '오이', '버섯', '양배추', '미역/김'] },
+      { cat: '지방', items: ['올리브오일', '아보카도 반 개', '견과류 한 줌 (10~15알)'] },
+      { cat: '음료', items: ['물', '무카페인 차', '블랙커피'] }
+    ],
+    disallowed: [
+      { cat: '저녁 탄수화물', items: ['밥 (저녁 금지)', '빵', '면류', '떡'] },
+      { cat: '당류', items: ['설탕', '꿀', '과일 (바나나, 포도 등 고당분)'] },
+      { cat: '가공식품', items: ['라면', '과자', '빵', '튀김', '패스트푸드'] },
+      { cat: '음료', items: ['주스', '탄산음료', '우유', '술', '카페라떼'] }
+    ]
+  },
+  {
+    phase: 4, name: '4단계: 대사유연성 회복', period: '3주차 (15~21일)',
+    note: '주 2회 24시간 단식을 실천합니다. 일반식은 저탄수를 유지하고, 운동 강도를 높입니다.',
+    allowed: [
+      { cat: '쉐이크', items: ['단백질 쉐이크 (아침)'] },
+      { cat: '탄수화물', items: ['잡곡밥 반 공기 (점심)', '고구마', '단호박', '귀리'] },
+      { cat: '단백질', items: ['닭가슴살', '생선', '두부', '달걀', '소고기', '돼지고기', '해산물'] },
+      { cat: '채소', items: ['모든 채소 자유', '샐러드', '나물류'] },
+      { cat: '간식', items: ['견과류 한 줌', '삶은 달걀', '치즈 1조각', '그릭요거트 (무가당)'] },
+      { cat: '지방', items: ['올리브오일', '아보카도', 'MCT오일'] },
+      { cat: '음료', items: ['물', '차', '블랙커피', '탄산수'] }
+    ],
+    disallowed: [
+      { cat: '탄수화물', items: ['흰쌀밥 (정량 초과)', '밀가루', '떡', '감자튀김'] },
+      { cat: '당류', items: ['설탕', '꿀', '과일주스', '아이스크림'] },
+      { cat: '가공식품', items: ['라면', '과자', '빵', '피자', '치킨'] },
+      { cat: '음료', items: ['탄산음료', '달달한 커피', '술'] }
+    ]
+  },
+  {
+    phase: 5, name: '5단계: 체지방 감량 극대화', period: '4주차 (22~28일)',
+    note: '주 3회 24시간 단식. 제한적 탄수화물 간식이 허용되며, 마지막 스퍼트 단계입니다.',
+    allowed: [
+      { cat: '식사', items: ['쉐이크 또는 가벼운 아침', '저탄수 점심/저녁'] },
+      { cat: '탄수화물', items: ['잡곡밥 반 공기', '고구마', '단호박', '통곡물 소량'] },
+      { cat: '단백질', items: ['모든 살코기', '생선', '두부', '달걀', '해산물'] },
+      { cat: '채소', items: ['모든 채소 자유'] },
+      { cat: '간식 (제한적)', items: ['견과류 한 줌', '삶은 달걀', '치즈', '그릭요거트', '다크초콜릿 1~2조각 (카카오 70%+)'] },
+      { cat: '과일 (제한적)', items: ['베리류 소량 (블루베리, 딸기)', '사과 반 개', '자몽 반 개'] },
+      { cat: '음료', items: ['물', '차', '블랙커피', '탄산수'] }
+    ],
+    disallowed: [
+      { cat: '탄수화물', items: ['밀가루 (빵, 면, 과자)', '흰쌀밥 과다', '떡'] },
+      { cat: '당류', items: ['설탕', '꿀', '시럽', '과일주스'] },
+      { cat: '가공식품', items: ['라면', '치킨', '피자', '패스트푸드', '과자'] },
+      { cat: '음료', items: ['탄산음료', '가당 커피', '술'] },
+      { cat: '과일 (고당분)', items: ['바나나', '포도', '망고', '수박 과다'] }
+    ]
+  }
+];
+
+let currentFoodPhase = 0; // 0=auto (current phase), 1~5=manual
+
+function renderFoods() {
+  const dayNum = getDayNumber(new Date());
+  const autoPhase = getCurrentPhase(dayNum);
+  const selectedPhase = currentFoodPhase || autoPhase || 1;
+
+  const container = document.getElementById('foodsContent');
+
+  // Phase selector buttons
+  let selectorHtml = '<div class="food-phase-selector">';
+  for (let i = 1; i <= 5; i++) {
+    const isActive = selectedPhase === i;
+    const isCurrent = i === autoPhase;
+    const cls = (isActive ? ' active' : '') + (isCurrent && !isActive ? ' current-phase' : '');
+    selectorHtml += `<button class="food-phase-btn${cls}" onclick="selectFoodPhase(${i})">${i}단계${isCurrent ? ' (현재)' : ''}</button>`;
+  }
+  selectorHtml += '</div>';
+
+  const phaseData = PHASE_FOODS[selectedPhase - 1];
+
+  // Phase header
+  let html = selectorHtml;
+  html += `<div class="card">
+    <div class="card-title"><span class="icon">&#127858;</span> ${phaseData.name}</div>
+    <div style="font-size:0.78rem;color:var(--text-light);margin-bottom:4px;">${phaseData.period}</div>`;
+
+  // Allowed foods
+  html += `<div class="food-list-section">
+    <div class="food-list-title allowed">&#9989; 허용 식품</div>`;
+  phaseData.allowed.forEach(cat => {
+    html += `<div class="food-category">${cat.cat}</div><div class="food-grid">`;
+    cat.items.forEach(item => {
+      html += `<span class="food-chip allowed">${item}</span>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Disallowed foods
+  html += `<div class="food-list-section">
+    <div class="food-list-title disallowed">&#10060; 비허용 식품</div>`;
+  phaseData.disallowed.forEach(cat => {
+    html += `<div class="food-category">${cat.cat}</div><div class="food-grid">`;
+    cat.items.forEach(item => {
+      html += `<span class="food-chip disallowed">${item}</span>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+
+  // Note
+  html += `<div class="food-note">${phaseData.note}</div>`;
+  html += '</div>';
+
+  container.innerHTML = html;
+}
+
+function selectFoodPhase(phase) {
+  currentFoodPhase = phase;
+  renderFoods();
+}
+
+// ===== INIT =====
+initDateSelects();
+updateDateDisplay();
+
+// 저장 확인 (dirty flag)
+document.getElementById('tab-today').addEventListener('input', () => { formDirty = true; });
+document.getElementById('tab-today').addEventListener('change', () => { formDirty = true; });
+window.addEventListener('beforeunload', (e) => {
+  if (formDirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ===== PWA MANIFEST (인라인) =====
+const manifest = {
+  name: '스위치온 다이어트 트래커',
+  short_name: '스위치온',
+  start_url: location.href,
+  display: 'standalone',
+  background_color: '#F0EEE9',
+  theme_color: '#3D3530',
+  icons: [{
+    src: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjM0QzNTMwIi8+PHRleHQgeD0iOTAiIHk9IjEwNSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI0YwRUVFOSIgZm9udC1zaXplPSI3MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI4MDAiPlNPPC90ZXh0Pjwvc3ZnPg==',
+    sizes: '180x180', type: 'image/svg+xml'
+  }]
+};
+const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+const manifestLink = document.createElement('link');
+manifestLink.rel = 'manifest';
+manifestLink.href = URL.createObjectURL(manifestBlob);
+document.head.appendChild(manifestLink);
+</script>
+</body>
+</html>
