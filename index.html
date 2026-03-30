@@ -562,7 +562,7 @@
     <div id="dayDetailPanel"></div>
   </div>
   <!-- 기록 목록 섹션 -->
-  <div style="margin-top:8px;">
+  <div id="historySection" style="margin-top:8px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 10px;">
       <div class="card-title" style="font-size:0.95rem;font-weight:700;margin-bottom:0;display:flex;align-items:center;gap:8px;">
         <span class="icon">&#128203;</span> 기록 목록
@@ -901,7 +901,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${btn.dataset.tab}`).classList.add('active');
-    if (btn.dataset.tab === 'progress') { renderPhases(); renderHistory(); }
+    if (btn.dataset.tab === 'progress') { renderPhases(); document.getElementById('historySection').style.display = ''; }
     if (btn.dataset.tab === 'foods') renderFoods();
     if (btn.dataset.tab === 'stats') renderStats();
     if (btn.dataset.tab === 'settings') loadSettings();
@@ -1279,14 +1279,14 @@ function showDayDetail(dayNum) {
   panel.innerHTML = html;
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   selectedHistoryKey = key;
-  renderHistory();
+  document.getElementById('historySection').style.display = 'none';
 }
 
 function closeDayDetail() {
   document.getElementById('dayDetailPanel').innerHTML = '';
   document.querySelectorAll('.cal-day.selected').forEach(el => el.classList.remove('selected'));
   selectedHistoryKey = null;
-  renderHistory();
+  document.getElementById('historySection').style.display = '';
 }
 
 function goToDateTab(key) {
@@ -1387,6 +1387,7 @@ function deleteLog(key) {
   selectedHistoryKey = null;
   closeDayDetail();
   renderPhases();
+  document.getElementById('historySection').style.display = '';
   showToast('삭제 완료');
 }
 
