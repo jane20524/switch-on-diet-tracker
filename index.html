@@ -453,7 +453,7 @@
     <div class="card-title"><span class="icon">&#9878;</span> 신체 기록</div>
     <div class="form-group">
       <label>체중 (kg)</label>
-      <input type="number" id="weight" step="0.1" placeholder="00.0" oninput="updateBMI()">
+      <input type="number" inputmode="decimal" id="weight" step="0.1" placeholder="00.0" oninput="updateBMI()">
     </div>
     <div class="bmi-display" id="bmiDisplay" style="display:none;">
       <div>
@@ -603,16 +603,16 @@
     </div>
     <div class="form-group">
       <label>키 (cm)</label>
-      <input type="number" id="height" step="0.1" placeholder="165.0">
+      <input type="number" inputmode="decimal" id="height" step="0.1" placeholder="165.0">
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>시작 체중 (kg)</label>
-        <input type="number" id="startWeight" step="0.1" placeholder="00.0">
+        <input type="number" inputmode="decimal" id="startWeight" step="0.1" placeholder="00.0">
       </div>
       <div class="form-group">
         <label>목표 체중 (kg)</label>
-        <input type="number" id="goalWeight" step="0.1" placeholder="00.0">
+        <input type="number" inputmode="decimal" id="goalWeight" step="0.1" placeholder="00.0">
       </div>
     </div>
     <div class="bmi-display" id="settingsBmiDisplay" style="display:none; margin-top:14px;">
@@ -998,7 +998,7 @@ function renderExerciseList() {
       <select onchange="exerciseRows[${i}].type=this.value">
         <option value="">운동 선택</option>${opts}
       </select>
-      <input type="number" min="0" placeholder="분" value="${ex.duration || ''}"
+      <input type="number" inputmode="numeric" min="0" placeholder="분" value="${ex.duration || ''}"
         onchange="exerciseRows[${i}].duration=parseInt(this.value)||0">
       ${exerciseRows.length > 1 ? `<button class="remove-btn" onclick="removeExerciseRow(${i})">&#10005;</button>` : '<div></div>'}
     </div>`;
